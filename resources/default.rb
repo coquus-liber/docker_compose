@@ -1,40 +1,17 @@
 # To learn more about Custom Resources, see https://docs.chef.io/custom_resources.html
 
-property :tag, [String,nil], name_property: true
+property :release, [String,nil], name_property: true
 
-property :repo, String, default: "docker/compose"
-property :bin, String, default: "/usr/local/bin/docker-compose"
-property :mode, String, default: '0755'
-property :file, String, default: "docker-compose-Linux-x86_64"
-
-action_class do 
-  require 'octokit'
-
-  def client
-    Octokit::Client.new
-  end
-
-  def r
-    new_resource
-  end
-
-  def release
-    case r.tag
-    when "latest",:latest,"",nil
-      client.latest_release(r.repo)
-    else
-      client.release_for_tag(r.repo,r.tag)
-    end
-  end
-
-  def asset
-    release.assets.select{|a| a['name'] == r.file}.first
-  end
-
-  def download_url
-    asset.browser_download_url 
-  end
-end
+property :repo, String, default: lazy {|r| node['docker']['compose']['repo'] }
+property :bin, String, default: lazy {|r| node['docker']['compose']['bin'] }
+property :mode, String, default: lazy {|r| node['docker']['compose']['mode'] }
+property :host, String, default: lazy {|r| node['docker']['compose']['host'] }
+property :file, String, default: lazy {|r| node['docker']['compose']['file'] }
+property :repo_url, String, default: lazy {|r| [r.host,r.repo].join('/') }
+property :releases_url, String, default: lazy {|r| [r.repo_url,'releases'].join('/') }
+property :download_url, String, default: lazy {|r| [r.releases_url,'download'].join('/') }
+property :release_url, String, default: lazy {|r| [r.download_url,r.release].join('/') }
+property :src_url, String, default: lazy {|r| [r.release_url,r.file].join('/') }
 
 action :create do
   package 'docker-compose' do
@@ -42,7 +19,7 @@ action :create do
   end
 
   remote_file new_resource.bin do
-    source download_url
+    source new_resource.src_url
     mode new_resource.mode
   end
 end

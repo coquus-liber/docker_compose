@@ -1,0 +1,31 @@
+#!/usr/bin/env ruby
+# To learn more about Custom Resources, see https://docs.chef.io/custom_resources.html
+
+require 'octokit'
+require 'yaml'
+
+version = :latest
+repo = "docker/compose"
+bin = "/usr/local/bin/docker-compose"
+mode = '0755'
+file =  "docker-compose-Linux-x86_64"
+src_dir = "https://github.com/#{repo}/releases/download"
+src_url = [src_dir,version,file].join('/')
+
+client = Octokit::Client.new
+
+release = 
+  case version
+  when "latest",:latest,"",nil
+    client.latest_release(repo)
+  else
+    client.release_for_tag(repo,version)
+  end
+
+puts release.name
+
+asset = release.assets.select{|a| a['name'] == file}.first
+
+puts asset.browser_download_url
+
+
