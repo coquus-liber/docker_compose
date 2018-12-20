@@ -1,20 +1,26 @@
 ---
+# develop with docker
 driver:
-  name: vagrant
+  name: docker
+  use_sudo: false
+  provision_command: 
+    - mkdir -p /run/sshd
 
 provisioner:
   name: chef_zero
-  # You may wish to disable always updating cookbooks in CI or other testing environments.
-  # For example:
-  #   always_update_cookbooks: <%= !ENV['CI'] %>
+  root_path: /tmp/kitchen
   always_update_cookbooks: true
+  retry_on_exit_code:
+    - 35 # exit code signaling that the node is rebooting
+  client_rb:
+    client_fork: false # forked instances don't return the real exit code
 
 verifier:
   name: inspec
 
 platforms:
   - name: ubuntu-16.04
-  - name: centos-7
+  - name: ubuntu-18.04
 
 suites:
   - name: default
